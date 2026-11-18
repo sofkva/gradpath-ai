@@ -1,0 +1,195 @@
+
+[
+    {
+        "code": "ENGL 15",
+        "name": "Rhetoric and Composition",
+        "credits": 3,
+        "prerequisites": []
+    },
+    {
+        "code": "CAS 100",
+        "name": "Effective Speech",
+        "credits": 3,
+        "prerequisites": []
+    },
+    {
+        "code": "COMM 150",
+        "name": "Introduction to Mass Communications",
+        "credits": 3,
+        "prerequisites": []
+    },
+    {
+        "code": "ECON 102",
+        "name": "Introductory Microeconomic Analysis",
+        "credits": 3,
+        "prerequisites": []
+    },
+    {
+        "code": "PSYCH 100",
+        "name": "Introduction to Psychology",
+        "credits": 3,
+        "prerequisites": []
+    },
+    {
+        "code": "SOC 1",
+        "name": "Introduction to Sociology",
+        "credits": 3,
+        "prerequisites": []
+    },
+    {
+        "code": "MATH 140",
+        "name": "Calculus With Analytic Geometry I",
+        "credits": 4,
+        "prerequisites": []
+    },
+    {
+        "code": "MATH 141",
+        "name": "Calculus With Analytic Geometry II",
+        "credits": 4,
+        "prerequisites": ["MATH 140"]
+    },
+    {
+        "code": "MATH 220",
+        "name": "Matrices",
+        "credits": 2,
+        "prerequisites": ["MATH 140"]
+    },
+    {
+        "code": "MATH 230",
+        "name": "Calculus and Vector Analysis",
+        "credits": 4,
+        "prerequisites": ["MATH 141"]
+    },
+    {
+        "code": "STAT 200",
+        "name": "Elementary Statistics",
+        "credits": 3,
+        "prerequisites": []
+    },
+    {
+        "code": "STAT 318",
+        "name": "Elementary Probability",
+        "credits": 3,
+        "prerequisites": ["STAT 200", "MATH 141"]
+    },
+    {
+        "code": "PHYS 211",
+        "name": "General Physics: Mechanics",
+        "credits": 4,
+        "prerequisites": ["MATH 140"]
+    },
+    {
+        "code": "PHYS 212",
+        "name": "General Physics: Electricity and Magnetism",
+        "credits": 4,
+        "prerequisites": ["PHYS 211", "MATH 141"]
+    },
+    {
+        "code": "CMPSC 131",
+        "name": "Programming and Computation I",
+        "credits": 3,
+        "prerequisites": []
+    },
+    {
+        "code": "CMPSC 132",
+        "name": "Programming and Computation II",
+        "credits": 3,
+        "prerequisites": ["CMPSC 131"]
+    },
+    {
+        "code": "CMPSC 221",
+        "name": "Object Oriented Programming",
+        "credits": 3,
+        "prerequisites": ["CMPSC 132"]
+    },
+    {
+        "code": "CMPSC 311",
+        "name": "Systems Programming",
+        "credits": 3,
+        "prerequisites": ["CMPSC 132"]
+    },
+    {
+        "code": "CMPSC 312",
+        "name": "Computer Organization and Architecture",
+        "credits": 3,
+        "prerequisites": ["CMPSC 132"]
+    },
+    {
+        "code": "CMPSC 360",
+        "name": "Discrete Mathematics for Computer Science",
+        "credits": 3,
+        "prerequisites": ["CMPSC 132"]
+    },
+    {
+        "code": "CMPSC 431W",
+        "name": "Database Management Systems",
+        "credits": 3,
+        "prerequisites": ["CMPSC 221", "CMPSC 360"]
+    },
+    {
+        "code": "CMPSC 442",
+        "name": "Artificial Intelligence",
+        "credits": 3,
+        "prerequisites": ["CMPSC 465", "STAT 200"]
+    },
+    {
+        "code": "CMPSC 445",
+        "name": "Machine Learning",
+        "credits": 3,
+        "prerequisites": ["CMPSC 442", "STAT 318", "MATH 220"]
+    },
+    {
+        "code": "CMPSC 446",
+        "name": "Data Mining",
+        "credits": 3,
+        "prerequisites": ["CMPSC 431W", "STAT 318"]
+    },
+    {
+        "code": "CMPSC 455",
+        "name": "Computer Graphics",
+        "credits": 3,
+        "prerequisites": ["CMPSC 221", "MATH 220"]
+    },
+    {
+        "code": "CMPSC 456",
+        "name": "Numerical Methods",
+        "credits": 3,
+        "prerequisites": ["MATH 230", "MATH 220"]
+    },
+    {
+        "code": "CMPSC 461",
+        "name": "Programming Language Concepts",
+        "credits": 3,
+        "prerequisites": ["CMPSC 221", "CMPSC 311", "CMPSC 360"]
+    },
+    {
+        "code": "CMPSC 465",
+        "name": "Data Structures and Algorithms",
+        "credits": 3,
+        "prerequisites": ["CMPSC 461"]
+    },
+    {
+        "code": "CMPSC 473",
+        "name": "Operating Systems",
+        "credits": 3,
+        "prerequisites": ["CMPSC 311", "CMPSC 312"]
+    },
+    {
+        "code": "CMPSC 474",
+        "name": "Distributed Systems",
+        "credits": 3,
+        "prerequisites": ["CMPSC 473"]
+    },
+    {
+        "code": "CMPSC 483W",
+        "name": "Software Engineering",
+        "credits": 3,
+        "prerequisites": ["CMPSC 221", "CMPSC 360"]
+    },
+    {
+        "code": "CMPSC 484W",
+        "name": "Web Application Development",
+        "credits": 3,
+        "prerequisites": ["CMPSC 221"]
+    }
+]

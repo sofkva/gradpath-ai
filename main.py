@@ -1,175 +1,470 @@
 import streamlit as st
-from collections import deque
-from itertools import combinations
+import pandas as pd
 
-#python -m streamlit run main.py
+from planner_core import (
+    load_catalog,
+    build_plan,
+    get_priority_rows,
+    compare_delay
+)
 
-# AI Course Planner + Graduation Path Finder
-# Halfway milestone: sample catalog, prerequisite graph, BFS planner,
-# bottleneck ranking, and a basic what-if delay analysis.
-# UCS, A*, availability, transfer equivalency, and richer UI are future work.
 
-COURSES = {
-    "CMPSC 131": {"name":"Programming and Computation I", "credits":3, "prerequisites":[], "difficulty":2},
-    "CMPSC 132": {"name":"Programming and Computation II", "credits":3, "prerequisites":["CMPSC 131"], "difficulty":2},
-    "CMPSC 360": {"name":"Discrete Mathematics", "credits":3, "prerequisites":["CMPSC 132"], "difficulty":3},
-    "CMPSC 465": {"name":"Algorithms", "credits":3, "prerequisites":["CMPSC 360"], "difficulty":3},
-    "CMPSC 473": {"name":"Operating Systems", "credits":3, "prerequisites":["CMPSC 360"], "difficulty":3},
-    "MATH 140": {"name":"Calculus I", "credits":4, "prerequisites":[], "difficulty":3},
-    "MATH 141": {"name":"Calculus II", "credits":4, "prerequisites":["MATH 140"], "difficulty":3},
-    "STAT 200": {"name":"Elementary Statistics", "credits":3, "prerequisites":[], "difficulty":2},
-    "ENGL 15": {"name":"Rhetoric and Composition", "credits":3, "prerequisites":[], "difficulty":1},
-    "CMPSC 311": {"name":"Systems Programming", "credits":3, "prerequisites":["CMPSC 132"], "difficulty":3},
-}
-DEFAULT_REQUIRED = list(COURSES.keys())
+# Page setup
+st.set_page_config(
+    page_title="Course Planner",
+    page_icon="📚",
+    layout="wide"
+)
 
-def prerequisites_met(course_id, completed):
-    return all(p in completed for p in COURSES[course_id]["prerequisites"])
+st.title("Course Planner")
 
-def eligible_courses(completed, required):
-    return [c for c in required if c not in completed and prerequisites_met(c, completed)]
+st.write(
+    "Plan your upcoming semesters, check course prerequisites, "
+    "and understand how delaying a course could affect your schedule."
+)
 
-def semester_combinations(eligible, max_credits):
-    """Generate nonempty sets of currently eligible courses within credit limit."""
-    choices = []
-    # Keep combinations manageable for this small sample dataset.
-    for size in range(1, min(len(eligible), 5) + 1):
-        for combo in combinations(eligible, size):
-            credits = sum(COURSES[c]["credits"] for c in combo)
-            if credits <= max_credits:
-                choices.append(combo)
-    # Favor fuller semesters to keep BFS practical, but each is still a valid expansion.
-    choices.sort(key=lambda combo: sum(COURSES[c]["credits"] for c in combo), reverse=True)
-    return choices[:35]
+st.caption(
+    "This version uses sample course information. "
+    "Verify requirements with your official academic department."
+)
 
-def bfs_plan(completed_start, required, max_credits, max_states=12000):
-    """BFS over semester-level states; returns a valid schedule or None."""
-    start = frozenset(completed_start)
-    queue = deque([(start, [])])
-    visited = {start}
-    explored = 0
 
-    while queue and explored < max_states:
-        completed, schedule = queue.popleft()
-        explored += 1
-        if set(required).issubset(completed):
-            return schedule, explored
+# Load catalog
+try:
+    catalog = load_catalog()
+except Exception as error:
+    st.error(f"Could not load course catalog: {error}")
+    st.stop()
 
-        eligible = eligible_courses(completed, required)
-        if not eligible:
-            continue
 
-        for combo in semester_combinations(eligible, max_credits):
-            next_completed = frozenset(set(completed).union(combo))
-            if next_completed in visited:
-                continue
-            visited.add(next_completed)
-            queue.append((next_completed, schedule + [list(combo)]))
+course_codes = list(catalog.keys())
 
-    return None, explored
 
-def bottleneck_scores(required):
-    """Count how many required courses depend directly/indirectly on each course."""
-    scores = {}
-    for course in required:
-        descendants = set()
-        frontier = [course]
-        while frontier:
-            current = frontier.pop()
-            for candidate in required:
-                if current in COURSES[candidate]["prerequisites"] and candidate not in descendants:
-                    descendants.add(candidate)
-                    frontier.append(candidate)
-        scores[course] = len(descendants)
-    return sorted(scores.items(), key=lambda x: x[1], reverse=True)
+# Sidebar: student information
+st.sidebar.header("Your Academic Information")
 
-def what_if_delay(course_to_delay, completed, required):
-    """Simple impact analysis: remove a course from current completed set (if any),
-    then report its downstream prerequisite courses. This is an estimate, not a
-    guaranteed graduation-date prediction."""
-    affected = []
-    frontier = [course_to_delay]
-    seen = {course_to_delay}
-    while frontier:
-        current = frontier.pop()
-        for candidate in required:
-            if current in COURSES[candidate]["prerequisites"] and candidate not in seen:
-                seen.add(candidate)
-                affected.append(candidate)
-                frontier.append(candidate)
-    return affected
+default_completed = [
+    "CMPSC 131",
+    "MATH 140",
+    "ENGL 15"
+]
 
-st.set_page_config(page_title="AI Course Planner", page_icon="🎓", layout="wide")
-st.title("🎓 AI Course Planner + Graduation Path Finder")
-st.caption("Halfway project prototype — sample catalog and BFS semester planner")
+default_completed = [
+    code for code in default_completed
+    if code in catalog
+]
 
-with st.sidebar:
-    st.header("Student planning inputs")
-    completed = st.multiselect("Courses already completed", options=list(COURSES.keys()))
-    max_credits = st.slider("Maximum credits per semester", min_value=6, max_value=18, value=15, step=1)
-    required = st.multiselect("Courses required in this sample plan", options=DEFAULT_REQUIRED, default=DEFAULT_REQUIRED)
+completed = st.sidebar.multiselect(
+    "Courses you have completed",
+    options=course_codes,
+    default=default_completed
+)
 
-tab1, tab2, tab3, tab4 = st.tabs(["Semester Planner", "Course Catalog", "Bottleneck Finder", "What-if Analysis"])
+required_options = [
+    code for code in course_codes
+    if code not in completed
+]
 
-with tab1:
-    st.subheader("Generate a prerequisite-valid semester plan")
-    if st.button("Generate plan with BFS", type="primary"):
-        if not required:
-            st.warning("Select at least one course to plan.")
-        elif not set(completed).intersection(required) and not required:
-            st.warning("Choose required courses.")
-        else:
-            plan, explored = bfs_plan(completed, required, max_credits)
-            st.session_state["bfs_plan"] = plan
-            st.session_state["explored"] = explored
-    if "bfs_plan" in st.session_state:
-        plan = st.session_state["bfs_plan"]
-        st.write(f"BFS states explored: **{st.session_state.get('explored', 0)}**")
-        if plan is None:
-            st.error("No plan found within the search limit. Try a higher credit limit or a smaller course set.")
-        elif len(plan) == 0:
-            st.success("All selected required courses are already completed.")
-        else:
-            st.success(f"Plan generated: {len(plan)} semester(s) in this sample.")
-            for idx, semester in enumerate(plan, start=1):
-                credits = sum(COURSES[c]["credits"] for c in semester)
-                with st.container(border=True):
-                    st.markdown(f"### Semester {idx} · {credits} credits")
-                    for course in semester:
-                        st.write(f"**{course}** — {COURSES[course]['name']} ({COURSES[course]['credits']} credits)")
-                        prereqs = COURSES[course]["prerequisites"]
-                        st.caption("Prerequisites: " + (", ".join(prereqs) if prereqs else "None"))
+default_required = [
+    "CMPSC 132",
+    "CMPSC 221",
+    "CMPSC 311",
+    "CMPSC 360",
+    "CMPSC 461",
+    "CMPSC 465",
+    "MATH 141",
+    "STAT 200"
+]
 
-with tab2:
-    st.subheader("Sample course catalog")
-    rows = []
-    for cid, info in COURSES.items():
-        rows.append({"Course ID":cid, "Course name":info["name"], "Credits":info["credits"],
-                     "Prerequisites":", ".join(info["prerequisites"]) or "None",
-                     "Difficulty (1–3)":info["difficulty"]})
-    st.dataframe(rows, use_container_width=True, hide_index=True)
+default_required = [
+    code for code in default_required
+    if code in required_options
+]
 
-with tab3:
-    st.subheader("Courses that unlock other courses")
-    st.write("Higher scores mean more required courses depend directly or indirectly on that course.")
-    scores = bottleneck_scores(required)
-    st.dataframe([{"Course":c, "Downstream required courses":score} for c,score in scores],
-                 use_container_width=True, hide_index=True)
-    if scores:
-        top = scores[0]
-        st.info(f"Priority candidate: **{top[0]}** — it unlocks {top[1]} course(s) in this selected set.")
+required = st.sidebar.multiselect(
+    "Courses you still need",
+    options=required_options,
+    default=default_required
+)
 
-with tab4:
-    st.subheader("What if a course is postponed or failed?")
-    target = st.selectbox("Course to delay", options=required or DEFAULT_REQUIRED)
-    affected = what_if_delay(target, completed, required or DEFAULT_REQUIRED)
-    st.write(f"**Courses downstream of {target}:**")
-    if affected:
-        st.write(", ".join(affected))
-        st.warning("These courses may need to move to a later semester if the prerequisite is delayed.")
+max_credits = st.sidebar.slider(
+    "Maximum credits per semester",
+    min_value=6,
+    max_value=21,
+    value=15
+)
+
+include_summer = st.sidebar.checkbox(
+    "Include summer semesters",
+    value=False
+)
+
+term_options = (
+    ["Fall", "Spring", "Summer"]
+    if include_summer
+    else ["Fall", "Spring"]
+)
+
+start_term = st.sidebar.selectbox(
+    "Starting semester",
+    options=term_options
+)
+
+start_year = st.sidebar.number_input(
+    "Starting year",
+    min_value=2026,
+    max_value=2100,
+    value=2027
+)
+
+
+# Generate the initial plan
+try:
+    plan = build_plan(
+        catalog=catalog,
+        completed=completed,
+        required=required,
+        max_credits=max_credits,
+        start_term=start_term,
+        start_year=int(start_year),
+        include_summer=include_summer
+    )
+
+    plan_error = None
+
+except ValueError as error:
+    plan = []
+    plan_error = str(error)
+
+
+# Main application tabs
+plan_tab, catalog_tab, priority_tab, whatif_tab = st.tabs([
+    "My Semester Plan",
+    "Course Catalog",
+    "Course Priorities",
+    "What If I Delay a Course?"
+])
+
+
+# -------------------------------------------------
+# TAB 1: SEMESTER PLAN
+# -------------------------------------------------
+
+with plan_tab:
+
+    st.header("Your Suggested Semester Plan")
+
+    if plan_error:
+
+        st.error(plan_error)
+
+    elif not plan:
+
+        st.success(
+            "All selected courses have already been completed!"
+        )
+
     else:
-        st.success("No downstream prerequisite courses were found in the selected sample.")
-    st.caption("This is a prerequisite-impact estimate. A precise graduation-date prediction requires semester offerings and university-specific rules.")
 
-st.divider()
-st.markdown("**Development status:** BFS planner, sample catalog, bottleneck finder, and basic what-if analysis are implemented. UCS/A*, course offering calendar, transfer-credit matching, and comprehensive testing are planned next.")
+        total_courses = sum(
+            len(semester["courses"])
+            for semester in plan
+        )
+
+        total_credits = sum(
+            semester["credits"]
+            for semester in plan
+        )
+
+        graduation_estimate = (
+            f"{plan[-1]['term']} {plan[-1]['year']}"
+        )
+
+        col1, col2, col3 = st.columns(3)
+
+        col1.metric(
+            "Courses to Complete",
+            total_courses
+        )
+
+        col2.metric(
+            "Estimated Semesters",
+            len(plan)
+        )
+
+        col3.metric(
+            "Estimated Finish",
+            graduation_estimate
+        )
+
+        st.divider()
+
+        # Display each semester
+        for semester in plan:
+
+            title = (
+                f"{semester['term']} {semester['year']} "
+                f"— {semester['credits']} credits"
+            )
+
+            with st.expander(title, expanded=True):
+
+                if not semester["courses"]:
+
+                    st.info(
+                        "No courses scheduled during this semester "
+                        "because of the selected delay."
+                    )
+
+                for course in semester["courses"]:
+
+                    col1, col2 = st.columns([4, 1])
+
+                    with col1:
+
+                        st.markdown(
+                            f"**{course['code']} — {course['name']}**"
+                        )
+
+                        st.caption(course["reason"])
+
+                    with col2:
+
+                        st.metric(
+                            "Credits",
+                            course["credits"]
+                        )
+
+        # Export schedule
+        export_rows = []
+
+        for semester in plan:
+
+            for course in semester["courses"]:
+
+                export_rows.append({
+                    "Semester": (
+                        f"{semester['term']} {semester['year']}"
+                    ),
+                    "Course": course["code"],
+                    "Course Name": course["name"],
+                    "Credits": course["credits"],
+                    "Recommendation Reason": course["reason"]
+                })
+
+        if export_rows:
+
+            csv_data = pd.DataFrame(
+                export_rows
+            ).to_csv(index=False).encode("utf-8")
+
+            st.download_button(
+                label="Download My Plan",
+                data=csv_data,
+                file_name="my_course_plan.csv",
+                mime="text/csv"
+            )
+
+
+# -------------------------------------------------
+# TAB 2: COURSE CATALOG
+# -------------------------------------------------
+
+with catalog_tab:
+
+    st.header("Course Catalog")
+
+    search = st.text_input(
+        "Search by course code or course name"
+    )
+
+    catalog_rows = []
+
+    for code, course in catalog.items():
+
+        catalog_rows.append({
+            "Course Code": code,
+            "Course Name": course["name"],
+            "Credits": course["credits"],
+            "Prerequisites": ", ".join(
+                course["prerequisites"]
+            ) or "None"
+        })
+
+    catalog_df = pd.DataFrame(catalog_rows)
+
+    if search:
+
+        filtered_df = catalog_df[
+            catalog_df.apply(
+                lambda row: search.lower() in
+                " ".join(row.astype(str)).lower(),
+                axis=1
+            )
+        ]
+
+    else:
+
+        filtered_df = catalog_df
+
+    st.dataframe(
+        filtered_df,
+        use_container_width=True,
+        hide_index=True
+    )
+
+    st.caption(
+        "Prerequisites must be completed before taking the listed course."
+    )
+
+
+# -------------------------------------------------
+# TAB 3: COURSE PRIORITIES
+# -------------------------------------------------
+
+with priority_tab:
+
+    st.header("Courses to Consider Taking Early")
+
+    st.write(
+        "Some courses are especially important because they "
+        "unlock multiple courses later in your academic plan."
+    )
+
+    priority_rows = get_priority_rows(catalog)
+
+    priority_df = pd.DataFrame(priority_rows)
+
+    priority_df = priority_df.rename(columns={
+        "Course": "Course Code",
+        "Name": "Course Name"
+    })
+
+    st.dataframe(
+        priority_df,
+        use_container_width=True,
+        hide_index=True
+    )
+
+    if priority_rows:
+
+        highest_priority = priority_rows[0]
+
+        st.info(
+            f"**Priority suggestion:** "
+            f"{highest_priority['Course']} — "
+            f"{highest_priority['Name']} unlocks "
+            f"{highest_priority['Courses Unlocked']} "
+            f"future course(s) in this sample catalog."
+        )
+
+
+# -------------------------------------------------
+# TAB 4: WHAT-IF ANALYSIS
+# -------------------------------------------------
+
+with whatif_tab:
+
+    st.header("What If You Delay a Course?")
+
+    st.write(
+        "Choose a course to postpone and compare your original "
+        "schedule with a schedule where that course is delayed."
+    )
+
+    if not required:
+
+        st.info(
+            "Select courses you still need in the sidebar first."
+        )
+
+    else:
+
+        delayed_course = st.selectbox(
+            "Which course do you want to delay?",
+            options=sorted(required)
+        )
+
+        delay_semesters = st.selectbox(
+            "How many semesters should it be delayed?",
+            options=[1, 2],
+            index=0
+        )
+
+        if st.button(
+            "Calculate the Effect",
+            type="primary"
+        ):
+
+            try:
+
+                original, delayed, difference = compare_delay(
+                    catalog=catalog,
+                    completed=completed,
+                    required=required,
+                    max_credits=max_credits,
+                    start_term=start_term,
+                    start_year=int(start_year),
+                    include_summer=include_summer,
+                    delay_course=delayed_course,
+                    delay_semesters=delay_semesters
+                )
+
+                col1, col2, col3 = st.columns(3)
+
+                col1.metric(
+                    "Original Semesters",
+                    len(original)
+                )
+
+                col2.metric(
+                    "Delayed Semesters",
+                    len(delayed)
+                )
+
+                col3.metric(
+                    "Additional Semesters",
+                    difference
+                )
+
+                if difference > 0:
+
+                    st.warning(
+                        f"Delaying {delayed_course} may add "
+                        f"{difference} semester(s) to your plan."
+                    )
+
+                else:
+
+                    st.success(
+                        "The delay does not increase the total "
+                        "number of planned semesters in this scenario."
+                    )
+
+                st.subheader("New Suggested Schedule")
+
+                for semester in delayed:
+
+                    course_names = [
+                        course["code"]
+                        for course in semester["courses"]
+                    ]
+
+                    st.write(
+                        f"**{semester['term']} {semester['year']}**: "
+                        + (
+                            ", ".join(course_names)
+                            if course_names
+                            else "No courses scheduled"
+                        )
+                    )
+
+                st.caption(
+                    "This is a simplified estimate based on prerequisites "
+                    "and credit limits. It does not yet account for actual "
+                    "class availability or official graduation audits."
+                )
+
+            except ValueError as error:
+
+                st.error(str(error))
