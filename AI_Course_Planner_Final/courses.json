@@ -1,0 +1,149 @@
+{
+  "CMPSC 131": {
+    "name": "Programming and Computation I",
+    "credits": 3,
+    "prerequisites": [],
+    "difficulty": 2,
+    "category": "Major",
+    "offerings": [
+      "Fall",
+      "Spring"
+    ]
+  },
+  "CMPSC 132": {
+    "name": "Programming and Computation II",
+    "credits": 3,
+    "prerequisites": [
+      "CMPSC 131"
+    ],
+    "difficulty": 2,
+    "category": "Major",
+    "offerings": [
+      "Fall",
+      "Spring"
+    ]
+  },
+  "CMPSC 360": {
+    "name": "Discrete Mathematics for Computer Science",
+    "credits": 3,
+    "prerequisites": [
+      "CMPSC 132"
+    ],
+    "difficulty": 3,
+    "category": "Major",
+    "offerings": [
+      "Fall",
+      "Spring"
+    ]
+  },
+  "CMPSC 465": {
+    "name": "Data Structures and Algorithms",
+    "credits": 3,
+    "prerequisites": [
+      "CMPSC 360"
+    ],
+    "difficulty": 3,
+    "category": "Major",
+    "offerings": [
+      "Fall"
+    ]
+  },
+  "CMPSC 473": {
+    "name": "Operating Systems Design & Construction",
+    "credits": 3,
+    "prerequisites": [
+      "CMPSC 360"
+    ],
+    "difficulty": 3,
+    "category": "Major",
+    "offerings": [
+      "Spring"
+    ]
+  },
+  "CMPSC 311": {
+    "name": "Systems Programming",
+    "credits": 3,
+    "prerequisites": [
+      "CMPSC 132"
+    ],
+    "difficulty": 3,
+    "category": "Major",
+    "offerings": [
+      "Fall",
+      "Spring"
+    ]
+  },
+  "MATH 140": {
+    "name": "Calculus I",
+    "credits": 4,
+    "prerequisites": [],
+    "difficulty": 3,
+    "category": "Math",
+    "offerings": [
+      "Fall",
+      "Spring",
+      "Summer"
+    ]
+  },
+  "MATH 141": {
+    "name": "Calculus II",
+    "credits": 4,
+    "prerequisites": [
+      "MATH 140"
+    ],
+    "difficulty": 3,
+    "category": "Math",
+    "offerings": [
+      "Fall",
+      "Spring",
+      "Summer"
+    ]
+  },
+  "STAT 200": {
+    "name": "Elementary Statistics",
+    "credits": 3,
+    "prerequisites": [],
+    "difficulty": 2,
+    "category": "General Education",
+    "offerings": [
+      "Fall",
+      "Spring",
+      "Summer"
+    ]
+  },
+  "ENGL 15": {
+    "name": "Rhetoric and Composition",
+    "credits": 3,
+    "prerequisites": [],
+    "difficulty": 1,
+    "category": "General Education",
+    "offerings": [
+      "Fall",
+      "Spring",
+      "Summer"
+    ]
+  },
+  "CAS 100A": {
+    "name": "Effective Speech",
+    "credits": 3,
+    "prerequisites": [],
+    "difficulty": 1,
+    "category": "General Education",
+    "offerings": [
+      "Fall",
+      "Spring"
+    ]
+  },
+  "PSYCH 100": {
+    "name": "Introductory Psychology",
+    "credits": 3,
+    "prerequisites": [],
+    "difficulty": 1,
+    "category": "General Education",
+    "offerings": [
+      "Fall",
+      "Spring",
+      "Summer"
+    ]
+  }
+}
